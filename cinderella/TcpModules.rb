@@ -1,4 +1,4 @@
-# $Id: TcpModules.rb,v 1.1 2003/06/03 11:13:26 ak1 Exp $
+# $Id: TcpModules.rb,v 1.2 2003/06/03 21:41:05 ak1 Exp $
 
 # a little helper class for TcpModules
 class TcpModules
@@ -21,7 +21,7 @@ class TcpModules
       end
     end
     $logger.debug "TcpModules#find_module: strings do not match"
-    return BadModule.new
+    return TcpBadModule.new
   end
 
 end

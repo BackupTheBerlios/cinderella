@@ -3,8 +3,14 @@
 
 #include "stream.h"
 
+#include <sys/types.h>
+#include <regex.h>
+
 struct tcp_module {
-  void * foo;
+  regex_t src_reg;
+  regex_t dst_reg;
+  void * eval_func;
+  struct tcp_module * next;
 };
 
 struct tcp_module * find_tcp_module(struct in_addr srcip, u_short srcport, struct in_addr dstip, u_short dstport);

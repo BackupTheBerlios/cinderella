@@ -1,15 +1,18 @@
-# $Id: Makefile,v 1.4 2003/09/22 16:32:11 ak1 Exp $
+# $Id: Makefile,v 1.5 2003/09/24 20:32:20 ak1 Exp $
 CC=cc
 CFLAGS=-O2 -Wall -pipe -D_BSD_SOURCE
-LDFLAGS=-lpcap -ldl
+LDFLAGS=-lpcap -ldl -lowfat
 OBJS=cind.o process.o packet.o process_tcp.o process_udp.o process_icmp.o process_other.o dumper.o stream.o config.o
 OUTPUT=cind
+
+INCLUDEDIRS=-I../libowfat
+LIBDIRS=-L../libowfat
 
 MYOS:=$(shell uname -s)
 
 ifeq ($(MYOS),Darwin) # fink on Darwin is required
-INCLUDEDIRS=-I/sw/include
-LIBDIRS=-L/sw/lib
+INCLUDEDIRS+=-I/sw/include
+LIBDIRS+=-L/sw/lib
 endif
 
 all: $(OUTPUT)

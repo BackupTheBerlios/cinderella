@@ -1,4 +1,4 @@
-# $Id: TcpConnection.rb,v 1.2 2003/08/02 17:39:05 ak1 Exp $
+# $Id: TcpConnection.rb,v 1.3 2003/08/02 19:56:37 ak1 Exp $
 
 class TcpConnection
 
@@ -14,6 +14,19 @@ class TcpConnection
   STATE_CLOSING = 9
   STATE_TIME_WAIT = 10
 
+  DIR_NONE   = 0
+  DIR_SERVER = 1
+  DIR_CLIENT = 2
+
+  TH_FIN  = 0x01
+  TH_SYN  = 0x02
+  TH_RST  = 0x04
+  TH_PUSH = 0x08
+  TH_ACK  = 0x10
+  TH_URG  = 0x20
+  TH_ECE  = 0x40
+  TH_CWR  = 0x80
+
   def initialize(saddr,sport,daddr,dport)
     $logger.debug "TcpConnection#initialize: saddr = #{saddr} sport = #{sport} daddr = #{daddr} dport = #{dport}"
     @saddr = saddr
@@ -22,6 +35,7 @@ class TcpConnection
     @dport = dport
     @client_state = STATE_CLOSED
     @server_state = STATE_LISTEN
+    @fin_sent = DIR_NONE
     @evaluated = false
     @good = false
     @module = nil
@@ -50,84 +64,230 @@ class TcpConnection
   end
 
   def set_new_state(pkt)
-    # this will be implemented according to Stevens UNP Vol. I, p. 38
-    #
-    # the client sends something
+    # this algorithm is taken from snort
+
     if (pkt.ip_src == @saddr and pkt.tcp_sport == @sport) then
-      $logger.debug "TcpConnection#set_new_state: client sends something"
-      case @client_state
-        when STATE_CLOSED then
-          if (pkt.tcp_syn?) then
-            $logger.debug "TcpConnection#set_new_state: setting state from STATE_CLOSED to STATE_SYN_SENT"
-            @client_state = STATE_SYN_SENT
-          else
-            $logger.warn "TcpConnection#set_new_state: bogus STATE_CLOSED to STATE_SYN_SENT"
-          end
-        when STATE_SYN_SENT then
-          if (not pkt.tcp_syn? and pkt.tcp_ack?) then
-            $logger.debug "TcpConnection#set_new_state: setting state from STATE_SYN_SENT to STATE_ESTABLISHED"
-            @client_state = STATE_ESTABLISHED
-          else
-            $logger.warn "TcpConnection#set_new_state: bogus STATE_SYN_SENT to STATE_ESTABLISHED"
-          end
-        when STATE_ESTABLISHED then
-          if (pkt.tcp_fin?) then
-            $logger.debug "TcpConnection#set_new_state: setting state from STATE_ESTABLISHED to STATE_FIN_WAIT_1"
-            @client_state = STATE_FIN_WAIT_1
-          end
-        when STATE_FIN_WAIT_1 then
-          if (pkt.tcp_ack?) then
-            $logger.debug "TcpConnection#set_new_state: setting state from STATE_FIN_WAIT_1 to STATE_CLOSING"
-            @client_state = STATE_CLOSING
-          end
-        when STATE_FIN_WAIT_2 then
-          if (pkt.tcp_ack?) then
-            $logger.debug "TcpConnection#set_new_state: setting state from STATE_FIN_WAIT_2 to STATE_TIME_WAIT"
-            @client_state = STATE_TIME_WAIT
-          else
-            $logger.warn "TcpConnection#set_new_state: bogus STATE_FIN_WAIT_2 to STATE_TIME_WAIT"
-          end
-        else
-          $logger.warn "TcpConnection#set_new_state: bogus state"
-      end # case
-
-      case @server_state
-        when STATE_LISTEN then
-          if (pkt.tcp_syn?) then
-            $logger.debug "TcpConnection#set_new_state: setting state from STATE_LISTEN to STATE_SYN_RCVD"
-            @server_state = STATE_SYN_RCVD
-          else
-            $logger.warn "TcpConnection#set_new_state: bogus STATE_LISTEN to STATE_SYN_RCVD"
-          end
-        when STATE_SYN_RCVD then
-          if (pkt.tcp_ack?) then
-            $logger.debug "TcpConnection#set_new_state: setting state from STATE_SYN_RCVD to STATE_ESTABLISHED"
-            @server_state = STATE_ESTABLISHED
-          else
-            $logger.warn "TcpConnection#set_new_state: bogus STATE_SYN_RCVD to STATE_ESTABLISHED"
-          end
-        when STATE_ESTABLISHED then
-          if (pkt.tcp_fin?) then
-            $logger.debug "TcpConnection#set_new_state: setting state from STATE_ESTABLISHED to STATE_CLOSE_WAIT"
-            @server_state = STATE_CLOSE_WAIT
-          end
-        when STATE_LAST_ACK then
-          if (pkt.tcp_ack?) then
-            $logger.debug "TcpConnection#set_new_state: setting state from STATE_LAST_ACK to STATE_CLOSED"
-            @server_state = STATE_CLOSED # end of connection
-            # connection shall be removed then
-          else
-            $logger.warn "TcpConnection#set_new_state: bogus STATE_LAST_ACK to STATE_CLOSED"
-          end
-      end
-
-    # the server sends something
-    elsif (pkt.ip_src == @daddr and pkt.tcp_sport == @dport) then
-      # XXX I think this should be implemented, but cinderella works without it
+      direction = DIR_CLIENT
+    elsif (pkt.ip_dst == @saddr and pkt.tcp_dport == @sport) then
+      direction = DIR_SERVER
     else
-      $logger.warn "TcpConnection#set_new_state: completely bogus packet"
-      # huh? packet must be bogus
+      $logger.warn "TcpConnection#set_new_state: totally bogus packet"
     end
+
+    if pkt.tcp_fin? then
+      @fin_sent = direction
+    end
+
+    case direction
+
+      when DIR_SERVER then
+
+        case @client_state
+          when STATE_SYN_SENT then
+            if pkt.tcp_flags == (TH_SYN|TH_ACK) then
+              @client_state = STATE_ESTABLISHED
+              $logger.debug "TcpConnection#set_new_state: client transition: ESTABLISHED"
+              return
+            elsif  pkt.tcp_flags == (TH_RST) then
+              @client_state = STATE_CLOSED
+              @server_state = STATE_CLOSED
+              $logger.debug "TcpConnection#set_new_state: client transition: CLOSED"
+              $logger.debug "TcpConnection#set_new_state: server transition: CLOSED"
+            end
+
+          when STATE_ESTABLISHED then
+            if pkt.tcp_flags == (TH_FIN|TH_ACK) then
+              @client_state = STATE_CLOSE_WAIT
+              @server_state = STATE_FIN_WAIT_1
+              $logger.debug "TcpConnection#set_new_state: client transition: CLOSE_WAIT"
+              $logger.debug "TcpConnection#set_new_state: server transition: FIN_WAIT_1"
+            elsif pkt.tcp_flags == (TH_FIN|TH_ACK|TH_PUSH) then
+
+              $logger.debug "TcpConnection#set_new_state: got FIN PSH ACK"
+              @client_state = STATE_CLOSE_WAIT
+              @server_state = STATE_FIN_WAIT_1
+              $logger.debug "TcpConnection#set_new_state: client transition: CLOSE_WAIT"
+              $logger.debug "TcpConnection#set_new_state: server transition: FIN_WAIT_1"
+            elsif pkt.tcp_flags == TH_FIN then
+              @client_state = STATE_CLOSE_WAIT
+              @server_state = STATE_FIN_WAIT_1
+              $logger.debug "TcpConnection#set_new_state: client transition: CLOSE_WAIT"
+              $logger.debug "TcpConnection#set_new_state: server transition: FIN_WAIT_1"
+            elsif pkt.tcp_rst? then
+              @client_state = STATE_CLOSED
+              @server_state = STATE_CLOSED
+              $logger.debug "TcpConnection#set_new_state: client transition: CLOSED"
+              $logger.debug "TcpConnection#set_new_state: server transition: CLOSED"
+            elsif pkt.tcp_ack? then
+              $logger.debug "TcpConnection#set_new_state: ACKing client data"
+            end
+
+            return
+
+          when STATE_FIN_WAIT_1 then
+            if pkt.tcp_rst? then
+              @server_state = STATE_CLOSED
+              @client_state = STATE_CLOSED
+              $logger.debug "TcpConnection#set_new_state: client transition: CLOSED"
+              $logger.debug "TcpConnection#set_new_state: server transition: CLOSED"
+            elsif pkt.tcp_flags == (TH_FIN|TH_ACK) then
+              @server_state = STATE_LAST_ACK
+              @client_state = STATE_FIN_WAIT_2
+              $logger.debug "TcpConnection#set_new_state: client transition: FIN_WAIT_2"
+              $logger.debug "TcpConnection#set_new_state: server transition: LAST_ACK"
+            elsif pkt.tcp_ack? then
+              @server_state = STATE_CLOSE_WAIT
+              @client_state = STATE_FIN_WAIT_2
+              $logger.debug "TcpConnection#set_new_state: client transition: FIN_WAIT_2"
+              $logger.debug "TcpConnection#set_new_state: server transition: CLOSE_WAIT"
+            end
+
+            return
+
+          when STATE_FIN_WAIT_2 then
+            if pkt.tcp_flags == (TH_FIN|TH_ACK) then
+              @client_state = STATE_TIME_WAIT
+              @server_state = STATE_LAST_ACK
+              $logger.debug "TcpConnection#set_new_state: client transition: TIME_WAIT"
+              $logger.debug "TcpConnection#set_new_state: server transition: LAST_ACK"
+            elsif pkt.tcp_flags == TH_FIN then
+              @client_state = STATE_TIME_WAIT
+              @server_state = STATE_LAST_ACK
+              $logger.debug "TcpConnection#set_new_state: client transition: TIME_WAIT"
+              $logger.debug "TcpConnection#set_new_state: server transition: LAST_ACK"
+            end
+
+            return
+
+          when STATE_LAST_ACK then
+            if pkt.tcp_ack? then
+              @client_state = STATE_CLOSED
+              $logger.debug "TcpConnection#set_new_state: client transition: CLOSED"
+            end
+            return
+
+          when STATE_CLOSE_WAIT then
+            if pkt.tcp_flags == TH_RST then
+              @server_state = STATE_CLOSED
+              @client_state = STATE_CLOSED
+              $logger.debug "TcpConnection#set_new_state: client transition: CLOSED"
+              $logger.debug "TcpConnection#set_new_state: server transition: CLOSED"
+            elsif pkt.tcp_flags == (TH_ACK|TH_PUSH|TH_FIN) then
+              @server_state = STATE_FIN_WAIT_2
+              @client_state = STATE_LAST_ACK
+              $logger.debug "TcpConnection#set_new_state: client transition: LAST_ACK"
+              $logger.debug "TcpConnection#set_new_state: server transition: FIN_WAIT_2"
+            elsif pkt.tcp_ack? then
+              @server_state = STATE_FIN_WAIT_2
+              $logger.debug "TcpConnection#set_new_state: server transition: FIN_WAIT_2"
+            end
+            return
+
+        end # case @client_state
+
+      when DIR_CLIENT then
+
+        case @server_state 
+
+          when STATE_LISTEN then
+            $logger.debug "TcpConnection#set_new_state: server state: LISTEN"
+            if pkt.tcp_syn? and not pkt.tcp_rst? then
+
+              @server_state = STATE_SYN_RCVD
+              @client_state = STATE_SYN_SENT
+              $logger.debug "TcpConnection#set_new_state: client transition: SYN_SENT"
+              $logger.debug "TcpConnection#set_new_state: server transition: SYN_RCVD"
+            end
+            return
+
+          when STATE_SYN_RCVD then
+            if pkt.tcp_rst? then
+              @server_state = STATE_CLOSED
+              @client_state = STATE_CLOSED
+              $logger.debug "TcpConnection#set_new_state: client transition: CLOSED"
+              $logger.debug "TcpConnection#set_new_state: server transition: CLOSED"
+            elsif pkt.tcp_ack? then
+              @server_state = STATE_ESTABLISHED
+              $logger.debug "TcpConnection#set_new_state: server transition: ESTABLISHED"
+            end
+            return
+
+          when STATE_ESTABLISHED then
+            if pkt.tcp_flags == (TH_FIN|TH_ACK) then
+              @client_state = STATE_FIN_WAIT_1
+              @server_state = STATE_CLOSE_WAIT
+              $logger.debug "TcpConnection#set_new_state: client transition: FIN_WAIT_1"
+              $logger.debug "TcpConnection#set_new_state: server transition: CLOSE_WAIT"
+            elsif pkt.tcp_flags == (TH_FIN|TH_ACK|TH_PUSH) then
+              @client_state = STATE_CLOSE_WAIT
+              @server_state = STATE_FIN_WAIT_1
+              $logger.debug "TcpConnection#set_new_state: client transition: CLOSE_WAIT"
+              $logger.debug "TcpConnection#set_new_state: server transition: FIN_WAIT_1"
+            elsif pkt.tcp_rst? then
+              @server_state = CLOSED
+              @client_state = CLOSED
+              $logger.debug "TcpConnection#set_new_state: client transition: CLOSED"
+              $logger.debug "TcpConnection#set_new_state: server transition: CLOSED"
+            end
+
+            return
+
+          when STATE_LAST_ACK then
+            if pkt.tcp_ack? then
+              @server_state = CLOSED
+              $logger.debug "TcpConnection#set_new_state: server transition: CLOSED"
+            end
+            return
+
+          when STATE_FIN_WAIT_1 then
+            if pkt.tcp_flags == (TH_ACK|TH_FIN) then
+              @client_state = STATE_LAST_ACK
+              @server_state = STATE_FIN_WAIT_2
+              $logger.debug "TcpConnection#set_new_state: client transition: LAST_ACK"
+              $logger.debug "TcpConnection#set_new_state: server transition: FIN_WAIT_2"
+            elsif pkt.tcp_rst? then
+              @server_state = STATE_CLOSED
+              @client_state = STATE_CLOSED
+              $logger.debug "TcpConnection#set_new_state: client transition: CLOSED"
+              $logger.debug "TcpConnection#set_new_state: server transition: CLOSED"
+            elsif pkt.tcp_flags == TH_ACK then
+              @server_state = STATE_FIN_WAIT_2
+              @client_state = STATE_CLOSE_WAIT
+              $logger.debug "TcpConnection#set_new_state: client transition: CLOSE_WAIT"
+              $logger.debug "TcpConnection#set_new_state: server transition: FIN_WAIT_2"
+            end
+            return
+
+          when STATE_FIN_WAIT_2 then
+            if pkt.tcp_flags == (TH_FIN|TH_ACK) then
+              @server_state = STATE_TIME_WAIT
+              @client_state = STATE_LAST_ACK
+              $logger.debug "TcpConnection#set_new_state: client transition: LAST_ACK"
+              $logger.debug "TcpConnection#set_new_state: server transition: TIME_WAIT"
+            elsif pkt.tcp_flags == TH_FIN then
+              @server_state = STATE_TIME_WAIT
+              @client_state = STATE_LAST_ACK
+              $logger.debug "TcpConnection#set_new_state: client transition: LAST_ACK"
+              $logger.debug "TcpConnection#set_new_state: server transition: TIME_WAIT"
+            end
+            return
+
+          when STATE_CLOSE_WAIT then
+            if pkt.tcp_flags == TH_RST then
+              @server_state = STATE_CLOSED
+              @client_state = STATE_CLOSED
+              $logger.debug "TcpConnection#set_new_state: client transition: CLOSED"
+              $logger.debug "TcpConnection#set_new_state: server transition: CLOSED"
+            elsif pkt.tcp_ack? then
+              @client_state = STATE_FIN_WAIT_2
+              $logger.debug "TcpConnection#set_new_state: client transition: FIN_WAIT_2"
+            end
+            return
+
+        end # case @server_state
+
+    end # case direction
+
   end
 
   def add_packet(pkt)
@@ -171,7 +331,7 @@ class TcpConnection
             saddr = new_saddr
             sport = new_sport
           end
-          $logger.debug "TcpConnection#get_conversation: data = #{data}"
+          $logger.debug "TcpConnection#get_conversation: data = #{data.dump}"
         end
       end
 

@@ -1,7 +1,8 @@
-# $Id: TcpConnection.rb,v 1.3 2003/08/02 19:56:37 ak1 Exp $
+# $Id: TcpConnection.rb,v 1.4 2003/08/02 22:27:26 ak1 Exp $
 
 class TcpConnection
 
+# possible TCP states
   STATE_CLOSED = 0
   STATE_SYN_SENT = 1
   STATE_LISTEN = 2
@@ -18,6 +19,7 @@ class TcpConnection
   DIR_SERVER = 1
   DIR_CLIENT = 2
 
+# taken from <netinet/tcp.h>
   TH_FIN  = 0x01
   TH_SYN  = 0x02
   TH_RST  = 0x04
@@ -42,12 +44,6 @@ class TcpConnection
     @packet_list = Array.new
     @timestamp = Time.new
     $logger.debug "TcpConnection#initialize: timestamp = #{@timestamp}"
-  end
-
-  def set_bad
-    $logger.debug "TcpConnection#set_bad: setting connection to bad"
-    @evaluated = true
-    @good = false
   end
 
   def register_dumpers(good,bad)
@@ -399,9 +395,29 @@ class TcpConnection
   end
 
   def timeout?(sec)
-    timeout = (Time.new.to_i - @timestamp.to_i) >= sec
-    $logger.debug "TcpConnection#timeout? is #{timeout}"
-    timeout
+    if self.client_closed? and self.server_closed? then
+      true # when the connection is closed, we have "timeout"
+      # (actually a trick to remove closed connections together with the
+      # timed out connections)
+    else
+      timeout = (Time.new.to_i - @timestamp.to_i) >= sec
+      $logger.debug "TcpConnection#timeout? is #{timeout}"
+      timeout
+    end
+  end
+
+  def set_bad
+    $logger.debug "TcpConnection#set_bad: setting connection to bad"
+    @evaluated = true
+    @good = false
+  end
+
+  def client_closed?
+    @client_state == STATE_CLOSED
+  end
+
+  def server_closed?
+    @server_state == STATE_CLOSED
   end
 
 end

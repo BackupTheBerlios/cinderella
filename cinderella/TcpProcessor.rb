@@ -1,4 +1,4 @@
-# $Id: TcpProcessor.rb,v 1.1 2003/06/03 11:13:26 ak1 Exp $
+# $Id: TcpProcessor.rb,v 1.2 2003/08/02 22:27:26 ak1 Exp $
 
 class TcpProcessor<PacketProcessor
 
@@ -32,8 +32,12 @@ class TcpProcessor<PacketProcessor
     if not cur_stream.is_evaluated? then
       $logger.debug "TcpProcessor#process_packet: stream is not yet evaluated. Adding packet"
       cur_stream.add_packet(pkt)
-      $logger.debug "TcpProcessor#process_packet: trying to evaluate stream"
-      cur_stream.try_evaluate
+      if cur_stream.client_closed? and cur_stream.server_closed? then
+        cur_stream.set_bad
+      else
+        $logger.debug "TcpProcessor#process_packet: trying to evaluate stream"
+        cur_stream.try_evaluate
+      end
 
       if cur_stream.is_evaluated? then
         $logger.debug "TcpProcessor#process_packet: stream is evaluated now. Dumping all packets"

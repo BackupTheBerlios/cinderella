@@ -49,5 +49,7 @@ struct packet * new_packet(const u_char * pkt, const struct pcap_pkthdr * );
 
 void delete_packet(struct packet * p);
 
+void free_packet_list(struct packet * p);
+
 
 #endif

@@ -1,13 +1,17 @@
-/* $Id: stream.c,v 1.2 2003/09/16 20:15:24 ak1 Exp $ */
+/* $Id: stream.c,v 1.3 2003/09/17 18:42:34 ak1 Exp $ */
 #include <stdlib.h>
 #include "stream.h"
+#include "dumper.h"
 #include <netinet/tcp.h>
 
 
 static struct stream * first;
 
+static time_t last_packet_ts;
+
 void stream_init(void) {
   first = NULL;
+  last_packet_ts = 0;
 }
 
 struct stream * find_stream(struct in_addr src_ip, u_short src_tcp, struct in_addr dst_ip, u_short dst_tcp) {
@@ -239,7 +243,7 @@ static void set_new_state(struct stream * s, struct packet * p) {
 }
 
 void stream_add_packet(struct stream * s, struct packet * p) {
-  s->last_packet_ts = p->pkthdr->ts.tv_sec;
+  last_packet_ts = s->last_packet_ts = p->pkthdr->ts.tv_sec;
   set_new_state(s,p);
   p->next = NULL;
   if (s->first_pkt==NULL) {
@@ -248,4 +252,81 @@ void stream_add_packet(struct stream * s, struct packet * p) {
     s->last_pkt->next = p;
     s->last_pkt = s->last_pkt->next;
   }
+}
+
+int stream_client_closed(struct stream * s) {
+  return s->client_state == STATE_CLOSED;
+}
+
+int stream_server_closed(struct stream * s) {
+  return s->server_state == STATE_CLOSED;
+}
+
+void stream_set_bad(struct stream * s) {
+  s->evaluated = 1;
+  s->bad = 1;
+}
+
+void stream_set_good(struct stream * s) {
+  s->evaluated = 1;
+  s->bad = 0;
+}
+
+static void * get_right_dumper(int bad) {
+  if (bad) {
+    return dump_bad_packet;
+  }
+  return dump_good_packet;
+}
+
+void stream_output_all(struct stream * s) {
+  void (*dump_func)(struct packet *);
+  struct packet * cur;
+
+  dump_func = get_right_dumper(s->bad);
+
+  for (cur = s->first_pkt; cur!=NULL; cur = cur->next) {
+    dump_func(cur);
+  }
+}
+
+void stream_try_evaluate(struct stream * s) {
+  /* do something with the registered module */
+}
+
+void do_output_packet(struct stream * s, struct packet * p) {
+  void (*dump_func)(struct packet *);
+
+  dump_func = get_right_dumper(s->bad);
+
+  dump_func(p);
+}
+
+
+void remove_old_streams(void) {
+  struct stream * my_first = NULL, * my_last = NULL, * cur, * dump_em = NULL;
+  for (cur = first; cur!=NULL;) {
+    if (last_packet_ts - cur->last_packet_ts > 60) { /* XXX replace 60 by your stream timeout */
+      struct stream * tmp = cur->next; /* save next pointer */
+      cur->next = dump_em; /* add cur to the beginning of the dump_em list */
+      dump_em = cur;
+      cur = tmp; /* set cur to the saved next pointer */
+    } else {
+      if (my_first==NULL) { /* if the new list is empty, add first element */
+        my_first = my_last = cur;
+      } else {
+        my_last->next = cur; /* add element to end of list */
+        my_last = my_last->next; /* move last pointer to end of list */
+        cur = cur->next; /* move cur pointer to next element */
+        my_last->next = NULL; /* set next element after the last element to NULL (to mark end of list) */
+      }
+    }
+  }
+  /* sometimes, list handling is more or less magic, unless you have lots of comments */
+  for (cur = dump_em; cur; cur = dump_em) {
+    free_packet_list(cur->first_pkt);
+    dump_em = cur->next;
+    free(cur);
+  }
+  first = my_first;
 }

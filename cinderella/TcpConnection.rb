@@ -1,4 +1,4 @@
-# $Id: TcpConnection.rb,v 1.1 2003/06/03 11:13:25 ak1 Exp $
+# $Id: TcpConnection.rb,v 1.2 2003/08/02 17:39:05 ak1 Exp $
 
 class TcpConnection
 
@@ -152,7 +152,7 @@ class TcpConnection
       sport = @packet_list[0].tcp_sport
       data = ""
       @packet_list.each_index do |i|
-        next if i <= 3
+        next if i < 3
 
         $logger.debug "TcpConnection#get_conversation: #{@packet_list[i]}"
 

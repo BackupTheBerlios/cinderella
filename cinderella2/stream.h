@@ -1,4 +1,4 @@
-/* $Id: stream.h,v 1.2 2003/09/16 20:15:24 ak1 Exp $ */
+/* $Id: stream.h,v 1.3 2003/09/22 16:32:11 ak1 Exp $ */
 #ifndef STREAM_H
 #define STREAM_H
 
@@ -12,7 +12,7 @@ enum { DIR_NONE = 0, DIR_CLIENT, DIR_SERVER };
 enum { STATE_CLOSED = 0, STATE_SYN_SENT, STATE_LISTEN, STATE_SYN_RCVD, STATE_ESTABLISHED, STATE_CLOSE_WAIT, STATE_LAST_ACK, STATE_FIN_WAIT_1, STATE_FIN_WAIT_2, STATE_CLOSING, STATE_TIME_WAIT };
 
 struct stream {
-  struct module * m;
+  struct tcp_module * m;
   u_int32_t ip_src; /* source IP */
   u_int32_t ip_dst; /* destination IP */
   u_int16_t tcp_sport; /* source IP */

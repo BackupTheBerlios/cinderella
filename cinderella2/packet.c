@@ -54,7 +54,7 @@ struct packet * new_packet(const u_char * pkt, const struct pcap_pkthdr * pkthdr
     p->udp_header = NULL;
     p->udp_payload = NULL;
     p->icmp_header = NULL;
-    p->is_tcp = p->is_tcp = p->is_icmp = NULL;
+    p->is_tcp = p->is_tcp = p->is_icmp = 0;
   }
 
   return p;

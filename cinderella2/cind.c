@@ -1,4 +1,4 @@
-/* $Id: cind.c,v 1.1 2003/09/15 20:03:19 ak1 Exp $ */
+/* $Id: cind.c,v 1.1.1.1 2003/09/15 20:03:19 ak1 Exp $ */
 #include <pcap.h>
 #include <stdlib.h>
 #include <string.h>

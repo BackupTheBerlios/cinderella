@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.1 2003/09/15 20:03:19 ak1 Exp $
+# $Id: Makefile,v 1.1.1.1 2003/09/15 20:03:19 ak1 Exp $
 CC=cc
 CFLAGS=-O2 -Wall -pipe
 LDFLAGS=-lpcap

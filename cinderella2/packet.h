@@ -22,6 +22,7 @@ struct packet {
   const u_char * packet;
   const struct pcap_pkthdr * pkthdr;
 
+  struct packet * next;
 
   /* preprocessed information */
   struct ether_header * eth_header;

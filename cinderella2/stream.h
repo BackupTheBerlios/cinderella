@@ -1,10 +1,15 @@
-/* $Id: stream.h,v 1.1 2003/09/16 18:58:01 ak1 Exp $ */
+/* $Id: stream.h,v 1.2 2003/09/16 20:15:24 ak1 Exp $ */
 #ifndef STREAM_H
 #define STREAM_H
 
 #include <sys/types.h>
 #include <netinet/in.h>
+#include <netinet/tcp.h>
 #include "packet.h"
+
+enum { DIR_NONE = 0, DIR_CLIENT, DIR_SERVER };
+
+enum { STATE_CLOSED = 0, STATE_SYN_SENT, STATE_LISTEN, STATE_SYN_RCVD, STATE_ESTABLISHED, STATE_CLOSE_WAIT, STATE_LAST_ACK, STATE_FIN_WAIT_1, STATE_FIN_WAIT_2, STATE_CLOSING, STATE_TIME_WAIT };
 
 struct stream {
   struct module * m;
@@ -16,9 +21,19 @@ struct stream {
 
   struct stream * next;
 
+  time_t last_packet_ts;
+
+  struct packet * first_pkt;
+  struct packet * last_pkt;
+
   /* flags: */
   int evaluated;
   int bad;
+  int fin_sent;
+
+  int client_state;
+  int server_state;
+
 };
 
 struct stream * find_stream(struct in_addr src_ip, u_short src_tcp, struct in_addr dst_ip, u_short dst_tcp);

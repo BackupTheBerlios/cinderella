@@ -1,0 +1,30 @@
+Very short introduction on how to write a module for cinderella:
+
+You need to create a file with the class TcpModule. This class must
+implement at least one method, namely "evaluate", which has one
+parameter, the conversation.
+
+The conversation is an array of strings containing the "conversation"
+between server and client. The return value of the evaluate method is
+an array with two boolean values, the first element marks whether the
+conversation could be fully evaluated, and the second element is the
+result of the evaluation.
+
+You can also create other methods and properties, whatever you need.
+
+An example:
+
+class TcpModule
+
+  def evaluate(conv)
+    retval = Array.new
+    retval << true # stream is evaluated
+    if conv[0] == "foo" then
+      retval << true
+    else
+      retval << false
+    end
+    retval
+  end
+
+end

@@ -1,6 +1,6 @@
-# $Id: Makefile,v 1.2 2003/09/16 18:58:01 ak1 Exp $
+# $Id: Makefile,v 1.3 2003/09/17 18:45:56 ak1 Exp $
 CC=cc
-CFLAGS=-O2 -Wall -pipe
+CFLAGS=-O2 -Wall -pipe -D_BSD_SOURCE
 LDFLAGS=-lpcap
 OBJS=cind.o process.o packet.o process_tcp.o process_udp.o process_icmp.o process_other.o dumper.o stream.o
 OUTPUT=cind

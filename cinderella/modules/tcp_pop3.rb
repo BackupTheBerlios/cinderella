@@ -1,4 +1,4 @@
-# $Id: pop3.rb,v 1.1 2003/06/03 11:13:26 ak1 Exp $
+# $Id: tcp_pop3.rb,v 1.1 2003/06/03 21:48:57 ak1 Exp $
 # POP3 module
 # (c) 2003 Andreas Krennmair <ak@synflood.at>
 

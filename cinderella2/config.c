@@ -1,4 +1,4 @@
-/* $Id: config.c,v 1.4 2003/09/25 09:28:52 ak1 Exp $ */
+/* $Id: config.c,v 1.5 2003/09/25 19:09:58 ak1 Exp $ */
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -7,6 +7,7 @@
 #include <fcntl.h>
 #include <buffer.h> /* from libowfat */
 #include <stralloc.h> /* from libowfat */
+#include <open.h> /* from libowfat */
 #include "config.h"
 #include "tcp_modules.h"
 
@@ -62,7 +63,7 @@ int read_config_file(char * cf) {
     return 0;
   }
 
-  fd = open(cf,O_RDONLY);
+  fd = open_read(cf);
   if (fd<0) {
     return 0;
   }

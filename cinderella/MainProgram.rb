@@ -1,4 +1,4 @@
-# $Id: MainProgram.rb,v 1.2 2003/06/05 18:05:37 ak1 Exp $
+# $Id: MainProgram.rb,v 1.3 2003/06/24 12:32:59 ak1 Exp $
 
 class MainProgram
 
@@ -35,6 +35,9 @@ class MainProgram
       elsif (pkt.udp?) then
         $logger.debug "MainProgram#process_packet: got UDP packet"
         processor = @udp_proc
+      elsif (pkt.icmp?) then
+        $logger.debug "MainProgram#process_packet: got ICMP packet"
+        processor = @icmp_proc
       else
         $logger.debug "MainProgram#process_packet: got some other packet"
         processor = @other_proc

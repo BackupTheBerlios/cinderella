@@ -1,4 +1,4 @@
-# $Id: ConfigReader.rb,v 1.4 2003/06/05 18:05:37 ak1 Exp $
+# $Id: ConfigReader.rb,v 1.5 2003/06/24 12:32:59 ak1 Exp $
 
 class ConfigReader
 
@@ -52,7 +52,7 @@ class ConfigReader
   def get_icmp_policies
     icmp_policies = Array.new
     @modules.each do |x|
-      icmp_policies << IcmpPolicy.new(x[1],x[2],x[3]) if (x[0] == "icmp")
+      icmp_policies << IcmpPolicy.new(x[1],x[2],x[3],x[4]?x[4]:"oneway") if (x[0] == "icmp")
     end
     $logger.debug "ConfigReader#get_icmp_policies: returing ICMP policies"
     icmp_policies

@@ -1,11 +1,19 @@
-# $Id: IcmpPolicy.rb,v 1.1 2003/06/05 18:05:37 ak1 Exp $
+# $Id: IcmpPolicy.rb,v 1.2 2003/06/24 12:32:59 ak1 Exp $
 
 class IcmpPolicy
 
-  def initialize(src_re,dst_re,pol_list)
-    @src_re = src_re
-    @dst_re = dst_re
+  def initialize(src_re,dst_re,pol_list,dir = "oneway")
+    @src_re = Regexp.new(src_re)
+    @dst_re = Regexp.new(dst_re)
     @codes = Array.new
+    @twoway = false
+    if dir == "twoway" then
+      @twoway = true
+    elsif dir == "oneway" then
+      @twoway = false
+    else
+      $logger.warn "IcmpPolicy#initialize: invalid entry for direction: `#{dir}'; setting to oneway"
+    end
     19.times { @codes << false } # 0..18 -> 19
     # ...
     icmp_codes = pol_list.split(/,/)
@@ -54,7 +62,12 @@ class IcmpPolicy
     dst_str = pkt.ip_dst.to_s
     code = pkt.icmp_code
     $logger.debug "IcmpPolicy#match_policy: matching packet..."
-    nil!=@src_re.match(src_str) and nil!=@dst_re.match(dst_str) and code>=0 and code<=18 and @codes[code]
+    if @twoway then
+      retval = (nil!=@src_re.match(src_str) and nil!=@dst_re.match(dst_str) and code>=0 and code<=18 and @codes[code])
+    else
+      retval = ((nil!=@src_re.match(src_str) and nil!=@dst_re.match(dst_str)) or (nil!=@src_re.match(dst_str) and nil!=@dst_re.match(src_str)) and code>=0 and code<=18 and @codes[code])
+    end
+    retval
   end
 
 end

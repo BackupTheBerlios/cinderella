@@ -1,0 +1,50 @@
+How to configure cinderella
+===========================
+
+The configuration of cinderella is really easy. One line is one
+configuration entry. Empty lines are not allowed. Comments are marked
+with a # at the beginning of the configuration entry.
+
+The type of the configuration entry is given in the first column.
+Currently valid types are "tcp", "udp" and "icmp" (without quotes).
+
+TCP configuration entries are structured the following way:
+tcp <module_to_load> <src_connection_regex> <dst_connection_regex> 
+
+where <module_to_load> is the file that contains the TcpModule that
+should evaluate the traffic of every connection from
+<src_connection_regex> to <dst_connection_regex>.
+
+The regular expressions describing the host and the connection's source
+port is matched against the IP address and the source port of an actual
+connection. The same applies for the second regular expression, with the
+destination port instead of the source port.
+
+UDP configuration entries are handled the same way, with s/tcp/udp/ig.
+
+
+ICMP configuration look the following way:
+icmp icmpcode1[,icmpcode2,...] <src_ip_regex> <dst_ip_regex>
+
+which means that a host with an IP address matching <src_ip_regex> may
+send the ICMP codes given in the icmp code list to an IP address
+matching matching <dst_ip_regex>. Valid ICMP codes are:
+* echoreply
+* unreachable
+* sourcequench
+* redirect
+* echo
+* routeradvert
+* routersolicit
+* timxceed
+* paramprob
+* tstamp
+* tstampreply
+* ireq
+* ireqreply
+* maskreq
+* maskreply
+
+Invalid ICMP codes are ignored and a warning message is written to
+cinderella's log file (when it's enabled and the log level is WARN or
+lower).

@@ -1,4 +1,4 @@
-# $Id: MainProgram.rb,v 1.1 2003/06/03 11:13:24 ak1 Exp $
+# $Id: MainProgram.rb,v 1.2 2003/06/05 18:05:37 ak1 Exp $
 
 class MainProgram
 
@@ -19,6 +19,8 @@ class MainProgram
     @tcp_proc = TcpProcessor.new(@cap,@dumper)
     $logger.debug "MainProgram#initialize: creating UdpProcessor"
     @udp_proc = UdpProcessor.new(@cap,@dumper)
+    $logger.debug "MainProgram#initialize: creating IcmpProcessor"
+    @icmp_proc = IcmpProcessor.new(@cap,@dumper)
     $logger.debug "MainProgram#initialize: creating OtherProcessor"
     @other_proc = OtherProcessor.new(@cap,@dumper)
   end

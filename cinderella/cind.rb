@@ -2,7 +2,7 @@
 
 # (c) 2002-2003 Andreas Krennmair <ak@synflood.at>
 # prototype for the NIDS codename "cinderella"
-# $Id: cind.rb,v 1.3 2003/06/03 21:41:05 ak1 Exp $
+# $Id: cind.rb,v 1.4 2003/06/05 18:05:37 ak1 Exp $
 
 require 'pcap'
 require 'log4r'
@@ -21,6 +21,9 @@ require("TcpContainer")
 require("BadModule")
 require("TcpModules")
 require("TcpProcessor")
+require("IcmpPolicy")
+require("IcmpPolicyContainer")
+require("IcmpProcessor")
 require("UdpModules")
 require("UdpProcessor")
 

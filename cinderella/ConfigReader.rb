@@ -1,4 +1,4 @@
-# $Id: ConfigReader.rb,v 1.3 2003/06/04 17:17:17 ak1 Exp $
+# $Id: ConfigReader.rb,v 1.4 2003/06/05 18:05:37 ak1 Exp $
 
 class ConfigReader
 
@@ -23,7 +23,7 @@ class ConfigReader
       conf_file.each_line do |line|
         line.chomp!
         fields = line.split(/ /)
-        @modules << fields unless line ~= /^#/
+        @modules << fields unless line =~ /^#/
       end
       $logger.debug "ConfigReader#get_modules: closing cind.conf"
       conf_file.close
@@ -47,6 +47,15 @@ class ConfigReader
     end
     $logger.debug "ConfigReader#get_tcp_modules: returning UDP modules"
     udp_modules
+  end
+
+  def get_icmp_policies
+    icmp_policies = Array.new
+    @modules.each do |x|
+      icmp_policies << IcmpPolicy.new(x[1],x[2],x[3]) if (x[0] == "icmp")
+    end
+    $logger.debug "ConfigReader#get_icmp_policies: returing ICMP policies"
+    icmp_policies
   end
 
 end

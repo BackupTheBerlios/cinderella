@@ -1,0 +1,23 @@
+Readme for cinderella
+=====================
+
+cinderella is a prototype for a specification-based network intrusion
+detection system. For an introduction to the concepts found in
+cinderella, please have a look at my paper about cinderella, which you
+can find at http://synflood.at/cinderella/paper.pdf.
+
+
+
+Credits
+=======
+
+Andreas Krennmair <ak@synflood.at>
+  Initial author and maintainer
+
+Thomas Warwaris <war@enemy.org>
+  Thanks to Thomas Warwaris for teaching me the concepts of network
+  intrusion detection and for giving me lots of good input.
+
+Thomas Hamberger <hamberger@hamberger.co.at>
+  Thanks to Thomas Hamberger for supporting me while I was developing
+  the predecessor of cinderella for his company.

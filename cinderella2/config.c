@@ -1,10 +1,12 @@
-/* $Id: config.c,v 1.2 2003/09/22 18:26:57 ak1 Exp $ */
+/* $Id: config.c,v 1.3 2003/09/24 20:56:42 ak1 Exp $ */
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <string.h>
 #include <sys/mman.h>
 #include <fcntl.h>
+#include <buffer.h> /* from libowfat */
+#include <stralloc.h> /* from libowfat */
 #include "config.h"
 
 
@@ -27,7 +29,7 @@ static int process_udp_config_line(char * line, int len) {
 }
 
 static int process_icmp_config_line(char * line, int len) {
-
+  return 1;
 }
 
 
@@ -51,9 +53,9 @@ static int process_config_line(char * line, int len) {
 
 int read_config_file(char * cf) {
   int fd;
-  off_t len;
-  char * file, * cur;
-  int retval = 1;
+  buffer b;
+  stralloc line;
+  char buf[2048];
 
   if (!cf) {
     return 0;
@@ -64,36 +66,15 @@ int read_config_file(char * cf) {
     return 0;
   }
 
-  len = lseek(fd,0,SEEK_END);
-  file = mmap(NULL,len,PROT_READ|PROT_WRITE,MAP_PRIVATE,fd,0);
-  if (!file) {
-    return 0;
-  }
-  
-  cur = file;
-  for (;;) {
-    for (;cur-file < len && *cur!='\n';cur++);
-    if ((++cur)-file < len) {
-      char * eol;
-      int line_len;
-      for (eol=cur;*eol!='\n' && eol-file < len;eol++);
-      if (eol-file < len) {
-        *eol = '\0';
-        line_len = eol-cur;
-      } else {
-        line_len = len - (cur-file);
-      }
-      if (!process_config_line(cur,line_len)) {
-        retval = 0;
-        break;
-      }
-      cur = eol+1;
-    } else {
-      break; /* we ran OOB, leave loop */
-    }
+  buffer_init(&b,read,fd,buf,sizeof(buf));
+  stralloc_init(&line);
+
+  while (buffer_getline_sa(&b,&line)>0) {
+    process_config_line(line.s,line.len);
   }
 
-  munmap(file, len);
+  stralloc_free(&line);
+
   close(fd);
-  return retval;
+  return 1;
 }

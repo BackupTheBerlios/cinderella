@@ -1,7 +1,8 @@
-/* $Id: process_tcp.c,v 1.3 2003/09/22 16:32:11 ak1 Exp $ */
+/* $Id: process_tcp.c,v 1.4 2003/09/24 20:56:42 ak1 Exp $ */
 #include "packet.h"
 #include "process_tcp.h"
 #include "stream.h"
+#include "tcp_modules.h"
 
 void process_tcp_packet(struct packet * pkt) {
   struct stream * s;

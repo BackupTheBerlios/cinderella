@@ -1,4 +1,4 @@
-# $Id: UdpConfigEntry.rb,v 1.1 2003/06/03 21:21:16 ak1 Exp $
+# $Id: UdpConfigEntry.rb,v 1.2 2003/06/04 17:17:17 ak1 Exp $
 
 class UdpConfigEntry<ConfigEntry
 
@@ -7,7 +7,7 @@ class UdpConfigEntry<ConfigEntry
   end
 
   def match(src_str,dst_str)
-    super(src_str,dsr_str)
+    super(src_str,dst_str)
   end
 
   def get_module

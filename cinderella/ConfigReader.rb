@@ -1,4 +1,4 @@
-# $Id: ConfigReader.rb,v 1.2 2003/06/03 21:21:16 ak1 Exp $
+# $Id: ConfigReader.rb,v 1.3 2003/06/04 17:17:17 ak1 Exp $
 
 class ConfigReader
 
@@ -23,7 +23,7 @@ class ConfigReader
       conf_file.each_line do |line|
         line.chomp!
         fields = line.split(/ /)
-        @modules << fields
+        @modules << fields unless line ~= /^#/
       end
       $logger.debug "ConfigReader#get_modules: closing cind.conf"
       conf_file.close

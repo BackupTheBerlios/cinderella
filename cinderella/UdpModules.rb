@@ -1,4 +1,4 @@
-# $Id: UdpModules.rb,v 1.1 2003/06/03 21:41:05 ak1 Exp $
+# $Id: UdpModules.rb,v 1.2 2003/06/04 17:17:17 ak1 Exp $
 
 class UdpModules
 
@@ -11,7 +11,7 @@ class UdpModules
   def find_module(pkt)
     @modules.each do |mod|
       src_str = pkt.ip_src.to_s + ":" + pkt.sport.to_s
-      dst_str = pkt.ip-dst.to_s + ":" + pkt.dport.to_s
+      dst_str = pkt.ip_dst.to_s + ":" + pkt.dport.to_s
       $logger.debug "UdpModules#find_module: trying to match #{src_str} and #{dst_str}"
       if (mod.match(src_str,dst_str)) then
         $logger.debug "UdpModules#find_module: strings match"

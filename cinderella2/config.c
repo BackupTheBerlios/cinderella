@@ -1,23 +1,59 @@
-/* $Id: config.c,v 1.1 2003/09/22 16:32:11 ak1 Exp $ */
+/* $Id: config.c,v 1.2 2003/09/22 18:26:57 ak1 Exp $ */
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <string.h>
 #include <sys/mman.h>
 #include <fcntl.h>
 #include "config.h"
 
 
-static int process_config_file(char * line, int len) {
+/* XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX */
+/* XX                                                    XX */
+/* XX  T H I S   C O N F I G U R A T I ON   P A R S E R  XX */
+/* XX  ! ! ! ! ! ! ! ! !     S U C K S    ! ! ! ! ! ! !  XX */
+/* XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX */
+
+static int process_tcp_config_line(char * line, int len) {
+  char * module_name = NULL, * src_re = NULL, * dst_re = NULL;
+  module_name = strtok(line, " ");
+  src_re = strtok(NULL, " ");
+  dst_re = strtok(NULL, " ");
+  return add_tcp_module(module_name,src_re,dst_re);
+}
+
+static int process_udp_config_line(char * line, int len) {
+  return 1;
+}
+
+static int process_icmp_config_line(char * line, int len) {
+
+}
+
+
+static int process_config_line(char * line, int len) {
   if (!line) {
     return 0;
   }
 
+  if (strncmp(line,"tcp ",4)==0) {
+    return process_tcp_config_line(line+4,len-4);
+  } else if (strncmp(line,"udp ",4)==0) {
+    return process_udp_config_line(line+4,len-4);
+  } else if (strncmp(line,"icmp ",5)==0) {
+    return process_icmp_config_line(line+5,len-5);
+  } else if (line[0] == '#') {
+    /* comment */
+    return 1;
+  }
+  return 0; /* unknown line */
 }
 
 int read_config_file(char * cf) {
   int fd;
   off_t len;
   char * file, * cur;
+  int retval = 1;
 
   if (!cf) {
     return 0;
@@ -47,7 +83,10 @@ int read_config_file(char * cf) {
       } else {
         line_len = len - (cur-file);
       }
-      process_config_line(cur,line_len);
+      if (!process_config_line(cur,line_len)) {
+        retval = 0;
+        break;
+      }
       cur = eol+1;
     } else {
       break; /* we ran OOB, leave loop */
@@ -56,5 +95,5 @@ int read_config_file(char * cf) {
 
   munmap(file, len);
   close(fd);
-  return 1;
+  return retval;
 }

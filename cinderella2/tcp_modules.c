@@ -1,4 +1,4 @@
-/* $Id: tcp_modules.c,v 1.3 2003/09/25 19:09:58 ak1 Exp $ */
+/* $Id: tcp_modules.c,v 1.4 2003/09/25 19:29:16 ak1 Exp $ */
 #include "tcp_modules.h"
 #include <netinet/in.h> /* for ntohs(3) */
 #include <stdlib.h>
@@ -39,12 +39,16 @@ struct tcp_module * find_tcp_module(struct in_addr srcip, u_short srcport, struc
 }
 
 void set_tcp_module(struct stream * s, struct tcp_module * m) {
+  if (!s || !m) {
+    return;
+  }
+
   s->m = m;
 }
 
 int add_tcp_module(char * module, char * src_re, char * dst_re) {
   struct tcp_module * tmp = malloc(sizeof(struct tcp_module));
-  if (!tmp || !module) {
+  if (!tmp || !module || !src_re || !dst_re) {
     return 0;
   }
   tmp->dl_handle = dlopen(module,RTLD_LAZY);

@@ -1,6 +1,7 @@
-/* $Id: stream.c,v 1.3 2003/09/17 18:42:34 ak1 Exp $ */
+/* $Id: stream.c,v 1.4 2003/09/25 19:29:16 ak1 Exp $ */
 #include <stdlib.h>
 #include "stream.h"
+#include "tcp_modules.h"
 #include "dumper.h"
 #include <netinet/tcp.h>
 
@@ -283,6 +284,10 @@ void stream_output_all(struct stream * s) {
   void (*dump_func)(struct packet *);
   struct packet * cur;
 
+  if (!s) {
+    return;
+  }
+
   dump_func = get_right_dumper(s->bad);
 
   for (cur = s->first_pkt; cur!=NULL; cur = cur->next) {
@@ -291,11 +296,22 @@ void stream_output_all(struct stream * s) {
 }
 
 void stream_try_evaluate(struct stream * s) {
-  /* do something with the registered module */
+  void (*eval_func)(struct stream *);
+  if (!s) {
+    return;
+  }
+
+   eval_func = (void (*)(struct stream *))(s->m->eval_func);
+
+   eval_func(s);
 }
 
 void do_output_packet(struct stream * s, struct packet * p) {
   void (*dump_func)(struct packet *);
+
+  if (!s || !p) {
+    return;
+  }
 
   dump_func = get_right_dumper(s->bad);
 

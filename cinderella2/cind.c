@@ -1,7 +1,8 @@
-/* $Id: cind.c,v 1.3 2003/09/25 19:09:58 ak1 Exp $ */
+/* $Id: cind.c,v 1.4 2003/09/25 19:29:16 ak1 Exp $ */
 #include <pcap.h>
 #include <stdlib.h>
-#include <str.h>
+#include <str.h>      /* from libowfat */
+#include <buffer.h>   /* from libowfat */
 #include "stream.h"
 #include "process.h"
 #include "dumper.h"
@@ -9,7 +10,7 @@
 
 static void check_handle(pcap_t * h) {
   if (!h) {
-    fprintf(stderr,"error: handle is NULL\n");
+    buffer_putsflush(buffer_2,"error: handle is NULL\n");
     exit(EXIT_FAILURE);
   }
 }
